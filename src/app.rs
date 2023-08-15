@@ -1,21 +1,46 @@
+use crate::api::{self, ApiError};
+use crate::todos::{Todo, TodoList};
+use std::sync::mpsc::{self, Receiver, Sender};
+
 /// We derive Deserialize/Serialize so we can persist app state on shutdown.
 #[derive(serde::Deserialize, serde::Serialize)]
 #[serde(default)] // if we add new fields, give them default values when deserializing old state
 pub struct TemplateApp {
     // Example stuff:
     label: String,
+    todo_title: String,
+    todo_content: String,
+    todos: TodoList,
 
     // this how you opt-out of serialization of a member
     #[serde(skip)]
     value: f32,
+    #[serde(skip)]
+    tx_todos: Sender<Vec<Todo>>,
+    #[serde(skip)]
+    rx_todos: Receiver<Vec<Todo>>,
+    #[serde(skip)]
+    tx_post: Sender<Result<Todo, ApiError>>,
+    #[serde(skip)]
+    rx_post: Receiver<Result<Todo, ApiError>>,
 }
 
 impl Default for TemplateApp {
     fn default() -> Self {
+        let (tx_todos, rx_todos) = mpsc::channel();
+        let (tx_post, rx_post) = mpsc::channel();
+
         Self {
             // Example stuff:
             label: "Hello World!".to_owned(),
+            todo_title: "Title".to_owned(),
+            todo_content: "What do I need to do?".to_owned(),
+            todos: TodoList { todos: vec![] },
             value: 2.7,
+            tx_todos,
+            rx_todos,
+            tx_post,
+            rx_post,
         }
     }
 }
@@ -45,7 +70,29 @@ impl eframe::App for TemplateApp {
     /// Called each time the UI needs repainting, which may be many times per second.
     /// Put your widgets into a `SidePanel`, `TopPanel`, `CentralPanel`, `Window` or `Area`.
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        let Self { label, value } = self;
+        let Self {
+            label,
+            todo_title,
+            todo_content,
+            value,
+            todos,
+            tx_todos,
+            rx_todos,
+            tx_post,
+            rx_post,
+        } = self;
+
+        if let Ok(result) = rx_post.try_recv() {
+            if let Ok(_result) = result {
+                *todo_title = String::new();
+                *todo_content = String::new();
+                api::get_todos(tx_todos.clone());
+            }
+        }
+
+        if let Ok(result) = rx_todos.try_recv() {
+            todos.todos = result;
+        }
 
         // Examples of how to create different panels and windows.
         // Pick whichever suits you.
@@ -61,6 +108,9 @@ impl eframe::App for TemplateApp {
                         _frame.close();
                     }
                 });
+                if ui.button("fetch").clicked() {
+                    api::get_todos(tx_todos.clone());
+                }
             });
         });
 
@@ -75,6 +125,12 @@ impl eframe::App for TemplateApp {
             ui.add(egui::Slider::new(value, 0.0..=10.0).text("value"));
             if ui.button("Increment").clicked() {
                 *value += 1.0;
+            }
+
+            ui.text_edit_singleline(todo_title);
+            ui.text_edit_singleline(todo_content);
+            if ui.button("post").clicked() {
+                api::create_todo(Todo::new(&todo_title, &todo_content), tx_post.clone());
             }
 
             ui.with_layout(egui::Layout::bottom_up(egui::Align::LEFT), |ui| {
@@ -97,6 +153,15 @@ impl eframe::App for TemplateApp {
 
             ui.heading("eframe template");
             ui.hyperlink("https://github.com/emilk/eframe_template");
+            let _: Vec<_> = todos
+                .todos
+                .iter()
+                .map(|todo| {
+                    ui.label(&todo.title);
+                    ui.label(&todo.content);
+                    ui.separator();
+                })
+                .collect();
             ui.add(egui::github_link_file!(
                 "https://github.com/emilk/eframe_template/blob/master/",
                 "Source code."
