@@ -75,12 +75,12 @@ impl eframe::App for TemplateApp {
 
         if let Ok(result) = rx.try_recv() {
             match result {
-              ResponseData::GetResponse => {
+              ResponseData::GetResponse(result) => {
                 if let Ok(result) = result {
                   todos.todos = result;
                 }
               }
-              ResponseData::PostResponse => {
+              ResponseData::PostResponse(result) => {
                 if let Ok(_result) = result {
                   *todo_title = String::new();
                   *todo_content = String::new();

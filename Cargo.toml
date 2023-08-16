@@ -4,7 +4,6 @@ version = "0.1.0"
 authors = ["IgorNK"]
 edition = "2021"
 
-
 [dependencies]
 egui = "0.22.0"
 eframe = { version = "0.22.0", default-features = false, features = [
