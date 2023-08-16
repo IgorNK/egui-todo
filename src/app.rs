@@ -23,8 +23,7 @@ pub struct TemplateApp {
 
 impl Default for TemplateApp {
     fn default() -> Self {
-        let (tx_todos, rx_todos) = mpsc::channel();
-        let (tx_post, rx_post) = mpsc::channel();
+        let (tx, rx) = mpsc::channel();
 
         Self {
             // Example stuff:

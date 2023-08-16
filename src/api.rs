@@ -15,8 +15,8 @@ pub enum ApiError {
 }
 
 pub enum ResponseData {
-  GetResponse(Result<Vec<Todo>, ApiError),
-  PostResponse(Result<Todo, ApiError>)
+  GetResponse(Result<Vec<Todo>, ApiError>),
+  PostResponse(Result<Todo, ApiError>),
 }
 
 #[derive(Deserialize, Serialize, Default, Debug)]
