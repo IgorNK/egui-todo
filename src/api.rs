@@ -1,5 +1,5 @@
 use crate::todos::Todo;
-use reqwest::{Method};
+use reqwest_wasm::Method;
 use serde::{Deserialize, Serialize};
 use std::sync::mpsc::Sender;
 use thiserror::Error;
@@ -9,14 +9,14 @@ const URL: &str = "https://simple-api.metsysfhtagn.repl.co/api/todos";
 #[derive(Error, Debug)]
 pub enum ApiError {
     #[error("Unable to send request")]
-    SendRequestError(#[from] reqwest::Error),
+    SendRequestError(#[from] reqwest_wasm::Error),
     #[error("Request failed: {0}")]
     BadRequest(&'static str),
 }
 
 pub enum ResponseData {
-  GetResponse(Result<Vec<Todo>, ApiError>),
-  PostResponse(Result<Todo, ApiError>),
+    GetResponse(Result<Vec<Todo>, ApiError>),
+    PostResponse(Result<Todo, ApiError>),
 }
 
 #[derive(Deserialize, Serialize, Default, Debug)]
@@ -39,7 +39,7 @@ struct TodoData {
 
 pub fn get_todos(tx: Sender<ResponseData>) {
     tokio::spawn(async move {
-        let body: String = reqwest::get(URL)
+        let body: String = reqwest_wasm::get(URL)
             .await
             .expect("Failed to fetch data from server")
             .text()
@@ -60,7 +60,7 @@ pub fn create_todo(todo: Todo, tx: Sender<ResponseData>) {
 }
 
 async fn post_todo(todo: Todo) -> Result<Todo, ApiError> {
-    let client = reqwest::Client::new();
+    let client = reqwest_wasm::Client::new();
     let request = client
         .request(Method::POST, URL)
         .json(&todo)

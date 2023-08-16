@@ -2,14 +2,17 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 
 use std::time::Duration;
-use tokio::runtime::Runtime;
+use tokio::runtime::Builder;
 
 // When compiling natively:
 #[cfg(not(target_arch = "wasm32"))]
 fn main() -> eframe::Result<()> {
     env_logger::init(); // Log to stderr (if you run with `RUST_LOG=debug`).
 
-    let rt = Runtime::new().expect("Unable to create Runtime");
+    let rt = Builder::new_current_thread()
+        .enable_time()
+        .build()
+        .expect("Unable to create Runtime");
 
     let _enter = rt.enter();
 
@@ -37,6 +40,21 @@ fn main() -> eframe::Result<()> {
 fn main() {
     // Redirect `log` message to `console.log` and friends:
     eframe::WebLogger::init(log::LevelFilter::Debug).ok();
+
+    let rt = Builder::new_current_thread()
+        .enable_time()
+        .build()
+        .expect("Unable to create Runtime");
+
+    let _enter = rt.enter();
+
+    std::thread::spawn(move || {
+        rt.block_on(async {
+            loop {
+                tokio::time::sleep(Duration::from_secs(3600)).await;
+            }
+        })
+    });
 
     let web_options = eframe::WebOptions {
         follow_system_theme: false,
