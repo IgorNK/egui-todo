@@ -1,5 +1,5 @@
 use crate::todos::Todo;
-use reqwest::{Client, Method};
+use reqwest::{Method};
 use serde::{Deserialize, Serialize};
 use std::sync::mpsc::Sender;
 use thiserror::Error;
@@ -65,18 +65,18 @@ async fn post_todo(todo: Todo) -> Result<Todo, ApiError> {
         .request(Method::POST, URL)
         .json(&todo)
         .build()
-        .map_err(|e| ApiError::SendRequestError(e))?;
+        .map_err(ApiError::SendRequestError)?;
 
     let response: ResponsePost = client
         .execute(request)
         .await?
         .json()
         .await
-        .map_err(|e| ApiError::SendRequestError(e))?;
+        .map_err(ApiError::SendRequestError)?;
 
     dbg!(&response);
     match response.status.as_str() {
-        "success" => return Ok(response.data.todo),
-        _ => return Err(ApiError::BadRequest("Unknown error")),
+        "success" => Ok(response.data.todo),
+        _ => Err(ApiError::BadRequest("Unknown error")),
     }
 }

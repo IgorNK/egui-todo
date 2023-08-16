@@ -1,4 +1,4 @@
-use crate::api::{self, ApiError, ResponseData};
+use crate::api::{self, ResponseData};
 use crate::todos::{Todo, TodoList};
 use std::sync::mpsc::{self, Receiver, Sender};
 
@@ -128,7 +128,7 @@ impl eframe::App for TemplateApp {
             ui.text_edit_singleline(todo_title);
             ui.text_edit_singleline(todo_content);
             if ui.button("post").clicked() {
-                api::create_todo(Todo::new(&todo_title, &todo_content), tx.clone());
+                api::create_todo(Todo::new(todo_title, todo_content), tx.clone());
             }
 
             ui.with_layout(egui::Layout::bottom_up(egui::Align::LEFT), |ui| {
