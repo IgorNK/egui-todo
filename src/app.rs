@@ -1,4 +1,4 @@
-use crate::api::{self, ApiError};
+use crate::api::{self, ApiError, ResponseData};
 use crate::todos::{Todo, TodoList};
 use std::sync::mpsc::{self, Receiver, Sender};
 
@@ -16,13 +16,9 @@ pub struct TemplateApp {
     #[serde(skip)]
     value: f32,
     #[serde(skip)]
-    tx_todos: Sender<Vec<Todo>>,
+    tx: Sender<ResponseData>,
     #[serde(skip)]
-    rx_todos: Receiver<Vec<Todo>>,
-    #[serde(skip)]
-    tx_post: Sender<Result<Todo, ApiError>>,
-    #[serde(skip)]
-    rx_post: Receiver<Result<Todo, ApiError>>,
+    rx: Receiver<ResponseData>,
 }
 
 impl Default for TemplateApp {
@@ -37,10 +33,8 @@ impl Default for TemplateApp {
             todo_content: "What do I need to do?".to_owned(),
             todos: TodoList { todos: vec![] },
             value: 2.7,
-            tx_todos,
-            rx_todos,
-            tx_post,
-            rx_post,
+            tx,
+            rx,
         }
     }
 }
@@ -76,22 +70,25 @@ impl eframe::App for TemplateApp {
             todo_content,
             value,
             todos,
-            tx_todos,
-            rx_todos,
-            tx_post,
-            rx_post,
+            tx,
+            rx,
         } = self;
 
-        if let Ok(result) = rx_post.try_recv() {
-            if let Ok(_result) = result {
-                *todo_title = String::new();
-                *todo_content = String::new();
-                api::get_todos(tx_todos.clone());
+        if let Ok(result) = rx.try_recv() {
+            match result {
+              ResponseData::GetResponse => {
+                if let Ok(result) = result {
+                  todos.todos = result;
+                }
+              }
+              ResponseData::PostResponse => {
+                if let Ok(_result) = result {
+                  *todo_title = String::new();
+                  *todo_content = String::new();
+                  api::get_todos(tx.clone());
+                }
+              }
             }
-        }
-
-        if let Ok(result) = rx_todos.try_recv() {
-            todos.todos = result;
         }
 
         // Examples of how to create different panels and windows.
@@ -99,17 +96,19 @@ impl eframe::App for TemplateApp {
         // Tip: a good default choice is to just keep the `CentralPanel`.
         // For inspiration and more examples, go to https://emilk.github.io/egui
 
-        #[cfg(not(target_arch = "wasm32"))] // no File->Quit on web pages!
+        // #[cfg(not(target_arch = "wasm32"))] // no File->Quit on web pages!
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
             // The top panel is often a good place for a menu bar:
             egui::menu::bar(ui, |ui| {
+                #[cfg(not(target_arch = "wasm32"))] // no File->Quit on web pages!
                 ui.menu_button("File", |ui| {
                     if ui.button("Quit").clicked() {
                         _frame.close();
                     }
                 });
+          
                 if ui.button("fetch").clicked() {
-                    api::get_todos(tx_todos.clone());
+                    api::get_todos(tx.clone());
                 }
             });
         });
@@ -130,7 +129,7 @@ impl eframe::App for TemplateApp {
             ui.text_edit_singleline(todo_title);
             ui.text_edit_singleline(todo_content);
             if ui.button("post").clicked() {
-                api::create_todo(Todo::new(&todo_title, &todo_content), tx_post.clone());
+                api::create_todo(Todo::new(&todo_title, &todo_content), tx.clone());
             }
 
             ui.with_layout(egui::Layout::bottom_up(egui::Align::LEFT), |ui| {

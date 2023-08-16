@@ -14,6 +14,11 @@ pub enum ApiError {
     BadRequest(&'static str),
 }
 
+pub enum ResponseData {
+  GetResponse(Result<Vec<Todo>, ApiError),
+  PostResponse(Result<Todo, ApiError>)
+}
+
 #[derive(Deserialize, Serialize, Default, Debug)]
 struct ResponseTodos {
     status: String,
@@ -32,7 +37,7 @@ struct TodoData {
     todo: Todo,
 }
 
-pub fn get_todos(tx: Sender<Vec<Todo>>) {
+pub fn get_todos(tx: Sender<ResponseData>) {
     tokio::spawn(async move {
         let body: String = reqwest::get(URL)
             .await
@@ -43,14 +48,14 @@ pub fn get_todos(tx: Sender<Vec<Todo>>) {
 
         let result: ResponseTodos = serde_json::from_str(&body).unwrap_or(ResponseTodos::default());
         dbg!(&result);
-        let _ = tx.send(result.todos);
+        let _ = tx.send(ResponseData::GetResponse(Ok(result.todos)));
     });
 }
 
-pub fn create_todo(todo: Todo, tx: Sender<Result<Todo, ApiError>>) {
+pub fn create_todo(todo: Todo, tx: Sender<ResponseData>) {
     tokio::spawn(async move {
         let response = post_todo(todo).await;
-        let _ = tx.send(response);
+        let _ = tx.send(ResponseData::PostResponse(response));
     });
 }
 

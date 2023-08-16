@@ -1,2 +1,5 @@
 /target
 /dist
+/.cargo/registry
+/.cargo/.package-cache
+.replit
