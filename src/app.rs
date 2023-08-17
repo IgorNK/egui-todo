@@ -41,6 +41,8 @@ impl Default for TemplateApp {
 impl TemplateApp {
     /// Called once before the first frame.
     pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
+        // #[cfg(target_arch = "wasm32")]
+        log::warn!("We're in app baby!");
         // This is also where you can customize the look and feel of egui using
         // `cc.egui_ctx.set_visuals` and `cc.egui_ctx.set_fonts`.
 
@@ -75,18 +77,21 @@ impl eframe::App for TemplateApp {
 
         if let Ok(result) = rx.try_recv() {
             match result {
-              ResponseData::GetResponse(result) => {
-                if let Ok(result) = result {
-                  todos.todos = result;
+                ResponseData::GetResponse(result) => {
+                    if let Ok(result) = result {
+                        todos.todos = result;
+                    }
                 }
-              }
-              ResponseData::PostResponse(result) => {
-                if let Ok(_result) = result {
-                  *todo_title = String::new();
-                  *todo_content = String::new();
-                  api::get_todos(tx.clone());
+                ResponseData::PostResponse(result) => {
+                    if let Ok(_result) = result {
+                        *todo_title = String::new();
+                        *todo_content = String::new();
+                        #[cfg(target_arch = "wasm32")]
+                        api::get_todos_web(tx.clone());
+                        #[cfg(not(target_arch = "wasm32"))]
+                        api::get_todos(tx.clone());
+                    }
                 }
-              }
             }
         }
 
@@ -105,8 +110,11 @@ impl eframe::App for TemplateApp {
                         _frame.close();
                     }
                 });
-          
+
                 if ui.button("fetch").clicked() {
+                    #[cfg(target_arch = "wasm32")]
+                    api::get_todos_web(tx.clone());
+                    #[cfg(not(target_arch = "wasm32"))]
                     api::get_todos(tx.clone());
                 }
             });
@@ -128,6 +136,9 @@ impl eframe::App for TemplateApp {
             ui.text_edit_singleline(todo_title);
             ui.text_edit_singleline(todo_content);
             if ui.button("post").clicked() {
+                #[cfg(target_arch = "wasm32")]
+                api::create_todo_web(Todo::new(todo_title, todo_content), tx.clone());
+                #[cfg(not(target_arch = "wasm32"))]
                 api::create_todo(Todo::new(todo_title, todo_content), tx.clone());
             }
 

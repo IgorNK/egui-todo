@@ -10,7 +10,7 @@ fn main() -> eframe::Result<()> {
     env_logger::init(); // Log to stderr (if you run with `RUST_LOG=debug`).
 
     let rt = Builder::new_current_thread()
-        .enable_time()
+        .enable_io()
         .build()
         .expect("Unable to create Runtime");
 
@@ -18,8 +18,9 @@ fn main() -> eframe::Result<()> {
 
     std::thread::spawn(move || {
         rt.block_on(async {
+            // loop {}
             loop {
-                tokio::time::sleep(Duration::from_secs(3600)).await;
+                std::future::pending::<()>().await;
             }
         })
     });
@@ -40,18 +41,22 @@ fn main() -> eframe::Result<()> {
 fn main() {
     // Redirect `log` message to `console.log` and friends:
     eframe::WebLogger::init(log::LevelFilter::Debug).ok();
+    log::warn!("before rt creation!");
 
-    let rt = Builder::new_current_thread()
-        .enable_time()
+    let rt = tokio::runtime::Builder::new_current_thread()
         .build()
-        .expect("Unable to create Runtime");
+        .expect("Unable to create runtime");
 
+    log::warn!("before rt enter!");
     let _enter = rt.enter();
 
+    log::warn!("before thread spawn!");
     std::thread::spawn(move || {
+        log::warn!("inside thread spawn!");
         rt.block_on(async {
+            log::warn!("inside block on!");
             loop {
-                tokio::time::sleep(Duration::from_secs(3600)).await;
+                std::future::pending::<()>().await;
             }
         })
     });
