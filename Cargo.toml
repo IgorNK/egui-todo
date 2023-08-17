@@ -21,6 +21,7 @@ reqwest = { version = "0.11.18", features = ["json"] }
 serde_json = "1.0.104"
 chrono = { version = "0.4.26", features = ["serde"] }
 thiserror = "1.0.45"
+reqwasm = "0.5.0"
 
 
 # native:
@@ -32,7 +33,6 @@ tokio = { version = "1.31.0", features = ["rt", "rt-multi-thread", "io-util"] }
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 wasm-bindgen-futures = "0.4"
 tokio = { version = "1.31.0", features = ["rt", "sync", "io-util", "macros"] }
-reqwasm = "0.5.0"
 
 
 [profile.release]

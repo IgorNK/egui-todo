@@ -57,14 +57,20 @@ pub fn get_todos(tx: Sender<ResponseData>) {
 }
 
 #[cfg(target_arch = "wasm32")]
-pub fn get_todos_web(tx: Sender<ResponseData>) {
-    tokio::task::spawn_local(async move {
-        let req = reqwasm::http::Request::get(URL);
-        let res = req.send().await.expect("Failed to send a request");
-        let response: ResponseTodos = res.json().await.expect("Failed to parse json");
-        dbg!(&response);
-        let _ = tx.send(ResponseData::GetResponse(Ok(response.todos)));
-    });
+pub async fn get_todos_web(tx: Sender<ResponseData>) {
+    let local = tokio::task::LocalSet::new();
+    log::warn!("sent request");
+    local
+        .spawn_local(async move {
+            log::warn!("inside spawned local");
+            let req = reqwasm::http::Request::get(URL);
+            // let res = req.send();
+            let res = req.send().await.expect("Failed to send a request");
+            let response: ResponseTodos = res.json().await.expect("Failed to parse json");
+            dbg!(&response);
+            let _ = tx.send(ResponseData::GetResponse(Ok(response.todos)));
+        })
+        .await;
 }
 
 #[cfg(not(target_arch = "wasm32"))]

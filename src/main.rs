@@ -38,34 +38,15 @@ fn main() -> eframe::Result<()> {
 
 // When compiling to web using trunk:
 #[cfg(target_arch = "wasm32")]
-fn main() {
+#[tokio::main(flavor = "current_thread")]
+async fn main() {
     // Redirect `log` message to `console.log` and friends:
     eframe::WebLogger::init(log::LevelFilter::Debug).ok();
-    log::warn!("before rt creation!");
-
-    let rt = tokio::runtime::Builder::new_current_thread()
-        .build()
-        .expect("Unable to create runtime");
-
-    log::warn!("before rt enter!");
-    let _enter = rt.enter();
-
-    log::warn!("before thread spawn!");
-    std::thread::spawn(move || {
-        log::warn!("inside thread spawn!");
-        rt.block_on(async {
-            log::warn!("inside block on!");
-            loop {
-                std::future::pending::<()>().await;
-            }
-        })
-    });
 
     let web_options = eframe::WebOptions {
         follow_system_theme: false,
         ..Default::default()
     };
-
     wasm_bindgen_futures::spawn_local(async {
         eframe::WebRunner::new()
             .start(
@@ -76,4 +57,8 @@ fn main() {
             .await
             .expect("failed to start eframe");
     });
+    // log::warn!("before thread spawn!");
+    // std::thread::spawn(move || {
+    //     log::warn!("inside thread spawn!");
+    // });
 }
