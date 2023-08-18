@@ -104,7 +104,7 @@ pub async fn fetch_todos_web(tx: Sender<ResponseData>) {
     let req = reqwasm::http::Request::get(URL);
     let res = req.send().await.expect("Failed to send a request");
     let response: ResponseTodos = res.json().await.expect("Failed to parse json");
-    log::warn!(&response);
+    dbg!(&response);
     let _ = tx.send(ResponseData::GetResponse(Ok(response.todos)));
 }
 
@@ -127,7 +127,7 @@ async fn post_todo_web(todo: Todo) -> Result<Todo, ApiError> {
         .json()
         .await
         .map_err(ApiError::WebRequestError)?;
-    log::warn!(&response);
+    dbg!(&response);
     match response.status.as_str() {
         "success" => Ok(response.data.todo),
         _ => Err(ApiError::BadRequest("Unknown error")),
