@@ -31,7 +31,7 @@ tokio = { version = "1.31.0", features = ["rt", "rt-multi-thread", "io-util"] }
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 wasm-bindgen-futures = "0.4"
 tokio = { version = "1.31.0", features = ["rt", "sync", "io-util", "macros"] }
-reqwasm = "0.5.0"
+reqwest-wasm = { version = "0.11.16", features = ["json"] }
 
 [profile.release]
 opt-level = 2 # fast and small wasm

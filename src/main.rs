@@ -9,8 +9,9 @@ use tokio::runtime::Builder;
 fn main() -> eframe::Result<()> {
     env_logger::init(); // Log to stderr (if you run with `RUST_LOG=debug`).
 
-    let rt = Builder::new_current_thread()
+    let rt = Builder::new_multi_thread()
         .enable_io()
+        .enable_time()
         .build()
         .expect("Unable to create Runtime");
 
