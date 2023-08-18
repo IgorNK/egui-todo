@@ -40,6 +40,8 @@ struct TodoData {
     todo: Todo,
 }
 
+// Native
+
 #[cfg(not(target_arch = "wasm32"))]
 pub fn get_todos(tx: Sender<ResponseData>) {
     tokio::spawn(async move {
@@ -56,35 +58,10 @@ pub fn get_todos(tx: Sender<ResponseData>) {
     });
 }
 
-#[cfg(target_arch = "wasm32")]
-pub async fn get_todos_web(tx: Sender<ResponseData>) {
-    let local = tokio::task::LocalSet::new();
-    log::warn!("sent request");
-    local
-        .spawn_local(async move {
-            log::warn!("inside spawned local");
-            let req = reqwasm::http::Request::get(URL);
-            // let res = req.send();
-            let res = req.send().await.expect("Failed to send a request");
-            let response: ResponseTodos = res.json().await.expect("Failed to parse json");
-            dbg!(&response);
-            let _ = tx.send(ResponseData::GetResponse(Ok(response.todos)));
-        })
-        .await;
-}
-
 #[cfg(not(target_arch = "wasm32"))]
 pub fn create_todo(todo: Todo, tx: Sender<ResponseData>) {
     tokio::spawn(async move {
         let response = post_todo(todo).await;
-        let _ = tx.send(ResponseData::PostResponse(response));
-    });
-}
-
-#[cfg(target_arch = "wasm32")]
-pub fn create_todo_web(todo: Todo, tx: Sender<ResponseData>) {
-    tokio::task::spawn_local(async move {
-        let response = post_todo_web(todo).await;
         let _ = tx.send(ResponseData::PostResponse(response));
     });
 }
@@ -112,6 +89,34 @@ async fn post_todo(todo: Todo) -> Result<Todo, ApiError> {
     }
 }
 
+// WebAssembly
+
+#[cfg(target_arch = "wasm32")]
+pub fn get_todos_web(tx: Sender<ResponseData>) {
+    wasm_bindgen_futures::spawn_local(async move {
+        fetch_todos_web(tx).await;
+    });
+}
+
+#[cfg(target_arch = "wasm32")]
+pub async fn fetch_todos_web(tx: Sender<ResponseData>) {
+    log::warn!("We're in async function! Yay!");  
+    let req = reqwasm::http::Request::get(URL);
+    let res = req.send().await.expect("Failed to send a request");
+    let response: ResponseTodos = res.json().await.expect("Failed to parse json");
+    log::warn!(&response);
+    let _ = tx.send(ResponseData::GetResponse(Ok(response.todos)));
+}
+
+
+#[cfg(target_arch = "wasm32")]
+pub fn create_todo_web(todo: Todo, tx: Sender<ResponseData>) {
+    wasm_bindgen_futures::spawn_local(async move {
+        let response = post_todo_web(todo).await;
+        let _ = tx.send(ResponseData::PostResponse(response));
+    });
+}
+
 #[cfg(target_arch = "wasm32")]
 async fn post_todo_web(todo: Todo) -> Result<Todo, ApiError> {
     let body = serde_json::to_string(&todo).unwrap_or(String::new());
@@ -122,7 +127,7 @@ async fn post_todo_web(todo: Todo) -> Result<Todo, ApiError> {
         .json()
         .await
         .map_err(ApiError::WebRequestError)?;
-    dbg!(&response);
+    log::warn!(&response);
     match response.status.as_str() {
         "success" => Ok(response.data.todo),
         _ => Err(ApiError::BadRequest("Unknown error")),

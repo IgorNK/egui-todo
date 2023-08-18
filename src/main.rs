@@ -38,8 +38,7 @@ fn main() -> eframe::Result<()> {
 
 // When compiling to web using trunk:
 #[cfg(target_arch = "wasm32")]
-#[tokio::main(flavor = "current_thread")]
-async fn main() {
+fn main() {
     // Redirect `log` message to `console.log` and friends:
     eframe::WebLogger::init(log::LevelFilter::Debug).ok();
 
@@ -57,8 +56,4 @@ async fn main() {
             .await
             .expect("failed to start eframe");
     });
-    // log::warn!("before thread spawn!");
-    // std::thread::spawn(move || {
-    //     log::warn!("inside thread spawn!");
-    // });
 }
