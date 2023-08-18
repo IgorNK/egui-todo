@@ -101,7 +101,8 @@ pub fn get_todos_web(tx: Sender<ResponseData>) {
 #[cfg(target_arch = "wasm32")]
 pub async fn fetch_todos_web(tx: Sender<ResponseData>) {
     log::warn!("We're in async function! Yay!");  
-    let req = reqwasm::http::Request::get(URL);
+    let req = reqwasm::http::Request::get(URL)
+      .mode(reqwasm::http::RequestMode::Cors);
     let res = req.send().await.expect("Failed to send a request");
     let response: ResponseTodos = res.json().await.expect("Failed to parse json");
     dbg!(&response);
@@ -120,7 +121,9 @@ pub fn create_todo_web(todo: Todo, tx: Sender<ResponseData>) {
 #[cfg(target_arch = "wasm32")]
 async fn post_todo_web(todo: Todo) -> Result<Todo, ApiError> {
     let body = serde_json::to_string(&todo).unwrap_or(String::new());
-    let request = reqwasm::http::Request::post(URL).body(body);
+    let request = reqwasm::http::Request::post(URL)
+      .body(body)
+      .mode(reqwasm::http::RequestMode::Cors);
     let response: ResponsePost = request
         .send()
         .await?
